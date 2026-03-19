@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>No-Show Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Epilogue:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:         #0b0f1a;
+      --surface:    #111827;
+      --surface2:   #1a2235;
+      --border:     #1f2e45;
+      --accent:     #00d4aa;
+      --accent-dim: #00d4aa22;
+      --danger:     #ff5f5f;
+      --danger-dim: #ff5f5f1a;
+      --text:       #e8edf5;
+      --muted:      #5a6a85;
+      --label:      #8899bb;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Epilogue', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0 0 80px;
+      overflow-x: hidden;
+    }
+
+    /* ── HERO BANNER ── */
+    .hero {
+      position: relative;
+      padding: 60px 24px 50px;
+      text-align: center;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, #00d4aa18 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 80% 50%, #0052ff0d 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--accent);
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+      animation: fadeDown 0.5s ease both;
+    }
+    .hero-tag .dot {
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2rem, 6vw, 3.6rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -1px;
+      animation: fadeDown 0.5s ease 0.1s both;
+    }
+    .hero h1 span {
+      color: var(--accent);
+    }
+    .hero p {
+      margin-top: 16px;
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 440px;
+      margin-inline: auto;
+      line-height: 1.7;
+      animation: fadeDown 0.5s ease 0.2s both;
+    }
+
+    /* ── STATS ROW ── */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 32px;
+      animation: fadeDown 0.5s ease 0.3s both;
+    }
+    .stat-pill {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 8px 20px;
+      font-size: 13px;
+      color: var(--label);
+    }
+    .stat-pill strong { color: var(--text); font-weight: 600; }
+
+    /* ── MAIN LAYOUT ── */
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      animation: fadeUp 0.5s ease 0.2s both;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-icon {
+      width: 40px; height: 40px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .card-header h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .card-header p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── SECTION LABEL ── */
+    .section-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 28px 0 16px;
+    }
+    .section-label:first-of-type { margin-top: 0; }
+
+    /* ── GRID ── */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .full { grid-column: 1 / -1; }
+
+    /* ── FIELD ── */
+    .field { display: flex; flex-direction: column; gap: 8px; }
+
+    .field > label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--label);
+    }
+
+    input[type="number"],
+    select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-family: 'Epilogue', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    input[type="number"]:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+    input[type="number"]::placeholder { color: var(--muted); }
+
+    select option { background: var(--surface2); }
+
+    /* ── TOGGLE PILLS ── */
+    .toggle-group { display: flex; gap: 8px; }
+    .toggle-group input[type="radio"] { display: none; }
+    .toggle-group label {
+      flex: 1;
+      text-align: center;
+      padding: 11px 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+    .toggle-group label:hover { border-color: var(--accent); color: var(--text); }
+    .toggle-group input[type="radio"]:checked + label {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ── SUBMIT ── */
+    .btn-wrap { margin-top: 32px; }
+    .btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      color: #0b0f1a;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px #00d4aa30;
+    }
+    .btn:hover  { opacity: 0.88; box-shadow: 0 6px 28px #00d4aa45; }
+    .btn:active { transform: scale(0.99); }
+
+    /* ── RESULT ── */
+    .result {
+      margin-top: 24px;
+      border-radius: 16px;
+      padding: 28px 32px;
+      border: 1px solid;
+      animation: fadeUp 0.4s ease both;
+      position: relative;
+      overflow: hidden;
+    }
+    .result::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .result.show {
+      background: var(--accent-dim);
+      border-color: #00d4aa44;
+    }
+    .result.show::before  { background: var(--accent); }
+    .result.noshow {
+      background: var(--danger-dim);
+      border-color: #ff5f5f44;
+    }
+    .result.noshow::before { background: var(--danger); }
+
+    .result-top {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .result-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .result.show   .result-icon { background: #00d4aa22; }
+    .result.noshow .result-icon { background: #ff5f5f22; }
+
+    .result-verdict {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+    }
+    .result.show   .result-verdict { color: var(--accent); }
+    .result.noshow .result-verdict { color: var(--danger); }
+
+    .result-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .conf-row {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .conf-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--label);
+      white-space: nowrap;
+    }
+    .conf-track {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+    .conf-fill {
+      height: 100%;
+      border-radius: 20px;
+      transition: width 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+    .result.show   .conf-fill { background: var(--accent); }
+    .result.noshow .conf-fill { background: var(--danger); }
+    .conf-pct {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .result.show   .conf-pct { color: var(--accent); }
+    .result.noshow .conf-pct { color: var(--danger); }
+
+    /* ── ERROR ── */
+    .error-box {
+      margin-top: 20px;
+      background: var(--danger-dim);
+      border: 1px solid #ff5f5f44;
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-size: 13px;
+      color: var(--danger);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      margin-top: 48px;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+    }
+    footer span { color: var(--label); }
+
+    /* ── DIVIDER ── */
+    hr.divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 28px 0 0;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 560px) {
+      .grid  { grid-template-columns: 1fr; }
+      .card  { padding: 24px 18px; }
+      .hero  { padding: 40px 16px 36px; }
+      .stats { gap: 8px; }
+      .result { padding: 22px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-tag">
+      <span class="dot"></span>
+      SVM · ML Project · Entri Elevate
+    </div>
+    <h1>Medical Appointment<br/><span>No-Show</span> Predictor</h1>
+    <p>Predict whether a patient will attend or miss their scheduled appointment using a Support Vector Machine model.</p>
+
+    <div class="stats">
+      <div class="stat-pill">Model: <strong>SVM (RBF Kernel)</strong></div>
+      <div class="stat-pill">Accuracy: <strong>~80.27%</strong></div>
+      <div class="stat-pill">Dataset: <strong>110k Records</strong></div>
+    </div>
+  </div>
+
+  <!-- FORM CARD -->
+  <div class="container">
+    <div class="card">
+
+      <div class="card-header">
+        <div class="card-icon">🏥</div>
+        <div>
+          <h2>Patient &amp; Appointment Details</h2>
+          <p>Fill in all fields and click Predict</p>
+        </div>
+      </div>
+
+      <form method="POST" action="/predict">
+
+        <!-- Patient Info -->
+        <div class="section-label">Patient Information</div>
+        <div class="grid">
+
+          <div class="field">
+            <label>Gender</label>
+            <div class="toggle-group">
+              <input type="radio" name="Gender" id="g_f" value="0"
+                {{ 'checked' if form_data and form_data.Gender == 0 else ('checked' if not form_data else '') }}>
+              <label for="g_f">Female</label>
+              <input type="radio" name="Gender" id="g_m" value="1"
+                {{ 'checked' if form_data and form_data.Gender == 1 else '' }}>
+              <label for="g_m">Male</label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Age</label>
+            <input type="number" name="Age" min="0" max="115" placeholder="e.g. 35"
+              value="{{ form_data.Age if form_data else '' }}" required />
+          </div>
+
+          <div class="field">
+            <label>Scholarship (Bolsa Família)</label>
+            <div class="toggle-group">
+              <input type="radio" name="Scholarship" id="sc_n" value="0"
+                {{ 'checked' if form_data and form_data.Scholarship == 0 else ('checked' if not form_data else '') }}>
+              <label for="sc_n">No</label>
+              <input type="radio" name="Scholarship" id="sc_y" value="1"
+                {{ 'checked' if form_data and form_data.Scholarship == 1 else '' }}>
+              <label for="sc_y">Yes</label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Disability Level (0–4)</label>
+            <select name="Handcap">
+              {% for i in range(5) %}
+              <option value="{{ i }}" {{ 'selected' if form_data and form_data.Handcap == i else '' }}>
+                {{ i }} {{ '— None' if i == 0 else '' }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+        </div>
+
+        <!-- Medical Conditions -->
+        <div class="section-label">Medical Conditions</div>
+        <div class="grid">
+
+          <div class="field">
+            <label>Hypertension</label>
+            <div class="toggle-group">
+              <input type="radio" name="Hipertension" id="h_n" value="0"
+                {{ 'checked' if form_data and form_data.Hipertension == 0 else ('checked' if not form_data else '') }}>
+              <label for="h_n">No</label>
+              <input type="radio" name="Hipertension" id="h_y" value="1"
+                {{ 'checked' if form_data and form_data.Hipertension == 1 else '' }}>
+              <label for="h_y">Yes</label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Diabetes</label>
+            <div class="toggle-group">
+              <input type="radio" name="Diabetes" id="d_n" value="0"
+                {{ 'checked' if form_data and form_data.Diabetes == 0 else ('checked' if not form_data else '') }}>
+              <label for="d_n">No</label>
+              <input type="radio" name="Diabetes" id="d_y" value="1"
+                {{ 'checked' if form_data and form_data.Diabetes == 1 else '' }}>
+              <label for="d_y">Yes</label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Alcoholism</label>
+            <div class="toggle-group">
+              <input type="radio" name="Alcoholism" id="al_n" value="0"
+                {{ 'checked' if form_data and form_data.Alcoholism == 0 else ('checked' if not form_data else '') }}>
+              <label for="al_n">No</label>
+              <input type="radio" name="Alcoholism" id="al_y" value="1"
+                {{ 'checked' if form_data and form_data.Alcoholism == 1 else '' }}>
+              <label for="al_y">Yes</label>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Appointment Details -->
+        <div class="section-label">Appointment Details</div>
+        <div class="grid">
+
+          <div class="field">
+            <label>SMS Reminder Sent</label>
+            <div class="toggle-group">
+              <input type="radio" name="SMS_received" id="sms_n" value="0"
+                {{ 'checked' if form_data and form_data.SMS_received == 0 else ('checked' if not form_data else '') }}>
+              <label for="sms_n">No</label>
+              <input type="radio" name="SMS_received" id="sms_y" value="1"
+                {{ 'checked' if form_data and form_data.SMS_received == 1 else '' }}>
+              <label for="sms_y">Yes</label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Days Until Appointment</label>
+            <input type="number" name="WaitingDays" min="0" placeholder="e.g. 7"
+              value="{{ form_data.WaitingDays if form_data else '' }}" required />
+          </div>
+
+        </div>
+
+        <hr class="divider"/>
+
+        <div class="btn-wrap">
+          <button type="submit" class="btn">⚡ Predict Attendance</button>
+        </div>
+      </form>
+
+      <!-- RESULT -->
+      {% if result %}
+        {% set cls = 'noshow' if result.prediction == 1 else 'show' %}
+        {% set icon = '⚠️' if result.prediction == 1 else '✅' %}
+        <div class="result {{ cls }}">
+          <div class="result-top">
+            <div class="result-icon">{{ icon }}</div>
+            <div>
+              <div class="result-verdict">{{ result.label }}</div>
+              <div class="result-sub">
+                {% if result.prediction == 1 %}
+                  This patient is likely to <strong>miss</strong> their appointment.
+                {% else %}
+                  This patient is likely to <strong>attend</strong> their appointment.
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          {% if result.probability %}
+          <div class="conf-row">
+            <div class="conf-label">Confidence</div>
+            <div class="conf-track">
+              <div class="conf-fill" id="conf-fill" style="width: 0%"></div>
+            </div>
+            <div class="conf-pct">{{ (result.probability * 100) | round(1) }}%</div>
+          </div>
+          <script>
+            setTimeout(() => {
+              document.getElementById('conf-fill').style.width = '{{ (result.probability * 100) | round(1) }}%';
+            }, 100);
+          </script>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <!-- ERROR -->
+      {% if error %}
+        <div class="error-box">⚠ {{ error }}</div>
+      {% endif %}
+
+    </div><!-- end card -->
+
+    <footer>
+      Predicting Medical Appointment No-Shows &nbsp;·&nbsp;
+      <span>Athira Sivadas</span> &nbsp;·&nbsp; Entri Elevate
+    </footer>
+
+  </div><!-- end container -->
+
+</body>
+</html>
