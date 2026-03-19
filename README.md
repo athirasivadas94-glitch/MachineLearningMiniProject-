@@ -159,15 +159,6 @@ miss their appointments.
 1.  Kaggle Dataset\
     https://www.kaggle.com/datasets/joniarroba/noshowappointments
 
-2.  Scikit-learn Documentation\
-    https://scikit-learn.org
-
-3.  Pandas Documentation\
-    https://pandas.pydata.org
-
-4.  Matplotlib Documentation\
-    https://matplotlib.org
 =======
 # MachineLearningMiniProject-
 MachineLearningMiniProject 
->>>>>>> 0a090a4b6c9825725c0b91332c3cc4495d79acf7
